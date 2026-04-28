@@ -53,6 +53,7 @@ Completed:
 - MovieLens preprocessing for ratings, movies, and genres
 - Leakage-safe timestamp-based train/test splitting
 - Candidate generation with popularity, item-item similarity, and hybrid retrieval
+- Leakage-safe ranking features, baseline sklearn ranker, and top-K evaluation
 
 Implementation modules will be added incrementally.
 
