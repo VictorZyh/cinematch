@@ -21,6 +21,25 @@ Expected raw files:
 - `ratings.csv`
 - `movies.csv`
 
+Download the default development dataset:
+
+```bash
+python scripts/download_movielens.py --dataset latest-small
+```
+
+This creates:
+
+```text
+data/raw/ml-latest-small/ratings.csv
+data/raw/ml-latest-small/movies.csv
+```
+
+The larger latest MovieLens release is also supported:
+
+```bash
+python scripts/download_movielens.py --dataset latest
+```
+
 ## Current Status
 
 Completed:
