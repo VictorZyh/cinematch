@@ -1,72 +1,123 @@
 # CineMatch
 
-CineMatch is a production-style MovieLens recommendation system implemented as a clean Python package.
-It is designed for reproducible end-to-end training, candidate generation, ranking, and offline evaluation using only `pandas`, `numpy`, and `scikit-learn`.
+CineMatch is a production-style, end-to-end movie recommendation system built on MovieLens.
+The project focuses on clean machine-learning engineering: modular code, leakage-safe evaluation, reproducible training, unit tests, and a runnable pipeline.
 
-## Project Goals
+The current model is intentionally a reliable baseline rather than an overfit research model. The architecture makes it easy to replace or improve candidate generation, ranking features, or the ranker later.
 
-- Build a modular recommendation system with clear production boundaries.
-- Avoid data leakage through timestamp-aware train/test splitting.
-- Support testable candidate generation, ranking, evaluation, and pipeline components.
-- Provide a reproducible command-line entry point for end-to-end runs.
-- Maintain high unit-test coverage for core ML logic.
+## What It Does
+
+CineMatch trains and evaluates a two-stage recommender:
+
+1. **Candidate generation**
+   - Popularity-based retrieval
+   - Item-item collaborative filtering with cosine nearest neighbors
+   - Weighted hybrid candidate merging
+
+2. **Ranking**
+   - Leakage-safe user, item, genre, and candidate-source features
+   - Supervised baseline ranker using `sklearn.linear_model.LogisticRegression`
+
+3. **Evaluation**
+   - Timestamp-based train/test split
+   - Precision@K
+   - Recall@K
+   - nDCG@K
+   - HitRate@K
+   - Catalog coverage
+
+## Why This Project Is Structured This Way
+
+Industrial recommenders usually do not score every item for every user in one step. They first retrieve a smaller candidate set, then rank those candidates with richer features. CineMatch follows that pattern while keeping the implementation small enough to understand, test, and extend.
+
+The split is time-based per user: each user's latest interactions are held out as future test data, while features and models are fit only on earlier interactions. This avoids the most common recommender-system data leakage mistake.
+
+## Repository Structure
+
+```text
+cinematch/
+├── configs/
+│   └── default.json
+├── docs/
+│   ├── architecture.md
+│   └── data.md
+├── scripts/
+│   ├── download_movielens.py
+│   └── run_pipeline.py
+├── src/
+│   └── cinematch/
+│       ├── candidate.py
+│       ├── config.py
+│       ├── constants.py
+│       ├── data_loader.py
+│       ├── evaluation.py
+│       ├── features.py
+│       ├── pipeline.py
+│       ├── preprocessing.py
+│       ├── ranking.py
+│       ├── split.py
+│       └── utils.py
+├── tests/
+├── Dockerfile
+├── Makefile
+└── pyproject.toml
+```
 
 ## Dataset
 
-The project targets the MovieLens dataset family from GroupLens.
-The default development path is intended for MovieLens Latest Small for fast local reproduction, while the same code structure can be pointed at larger MovieLens releases.
+The default dataset is MovieLens Latest Small from GroupLens.
 
-Expected raw files:
+Expected files after download:
 
-- `ratings.csv`
-- `movies.csv`
+```text
+data/raw/ml-latest-small/
+├── ratings.csv
+└── movies.csv
+```
 
-Download the default development dataset:
+Download it with:
 
 ```bash
 python scripts/download_movielens.py --dataset latest-small
 ```
 
-This creates:
-
-```text
-data/raw/ml-latest-small/ratings.csv
-data/raw/ml-latest-small/movies.csv
-```
-
-The larger latest MovieLens release is also supported:
+The larger MovieLens latest dataset is also supported:
 
 ```bash
 python scripts/download_movielens.py --dataset latest
 ```
 
-## Current Status
+Raw data is intentionally excluded from Git. The dataset is downloaded reproducibly from the official GroupLens file server.
 
-Completed:
+## Quickstart
 
-- Python package skeleton
-- Project metadata
-- Default JSON config
-- Constants and typed config objects
-- Utility helpers
-- MovieLens data loading and schema validation
-- MovieLens preprocessing for ratings, movies, and genres
-- Leakage-safe timestamp-based train/test splitting
-- Candidate generation with popularity, item-item similarity, and hybrid retrieval
-- Leakage-safe ranking features, baseline sklearn ranker, and top-K evaluation
-- End-to-end pipeline that saves metrics and scored recommendations
-
-Implementation modules will be added incrementally.
-
-## Planned End-to-End Command
+Create the environment and install dependencies:
 
 ```bash
-python scripts/run_pipeline.py --config configs/default.json
+make install
 ```
 
-The command loads data, creates a leakage-safe split, generates candidates, trains a ranking model, evaluates top-K metrics, and saves reproducible artifacts.
+Download the default dataset:
 
-Pipeline artifacts:
+```bash
+make download
+```
+
+Run the full pipeline:
+
+```bash
+make run
+```
+
+Run tests:
+
+```bash
+make test
+```
+
+## Pipeline Output
+
+The pipeline writes artifacts to:
 
 ```text
 artifacts/
@@ -74,3 +125,39 @@ artifacts/
 ├── recommendations.csv
 └── run_metadata.json
 ```
+
+Example command:
+
+```bash
+PYTHONPATH=src python scripts/run_pipeline.py --config configs/default.json
+```
+
+## Current Test Status
+
+Local validation:
+
+```text
+42 passed
+Total coverage: 93.83%
+```
+
+The GitHub Actions workflow also runs the test suite on push and pull request.
+
+## Design Principles
+
+- No notebooks in the production path
+- Only `pandas`, `numpy`, and `scikit-learn` for ML/data logic
+- Modular components with clear ownership
+- Explicit type hints and docstrings
+- Leakage-safe feature computation
+- Testable pure functions where possible
+- Reproducible command-line pipeline
+
+## Next Improvements
+
+- Add model serialization and loading
+- Add batch inference for selected users
+- Add feature importance and diagnostics
+- Add stronger ranking models and better negative sampling
+- Add experiment tracking with metrics history
+- Add API serving once the offline pipeline stabilizes
