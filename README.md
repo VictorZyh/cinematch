@@ -139,6 +139,14 @@ Example command:
 PYTHONPATH=src python scripts/run_pipeline.py --config configs/default.json
 ```
 
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Data documentation](docs/data.md)
+- [Model card](docs/model_card.md)
+- [Experiment report](docs/experiment_report.md)
+- [Sample metrics](docs/sample_metrics.json)
+
 ## Batch Inference
 
 After running the training pipeline, create a user file:
