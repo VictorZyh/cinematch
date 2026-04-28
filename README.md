@@ -51,6 +51,7 @@ Completed:
 - Utility helpers
 - MovieLens data loading and schema validation
 - MovieLens preprocessing for ratings, movies, and genres
+- Leakage-safe timestamp-based train/test splitting
 
 Implementation modules will be added incrementally.
 
