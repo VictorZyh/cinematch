@@ -23,13 +23,15 @@ Expected raw files:
 
 ## Current Status
 
-Step 1 completed:
+Completed:
 
 - Python package skeleton
 - Project metadata
 - Default JSON config
 - Constants and typed config objects
 - Utility helpers
+- MovieLens data loading and schema validation
+- MovieLens preprocessing for ratings, movies, and genres
 
 Implementation modules will be added incrementally.
 
