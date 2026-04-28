@@ -7,7 +7,7 @@ CineMatch is a two-stage movie recommendation system:
 1. Candidate generation retrieves a small set of plausible movies for each user.
 2. A supervised ranker scores and orders those candidates.
 
-The current ranking model is a baseline logistic regression model from scikit-learn. It is intentionally simple so the project can emphasize correct ML system design, leakage-safe evaluation, modularity, and reproducibility.
+The current default ranking model is logistic regression from scikit-learn. Histogram-based gradient boosting is also supported as an experiment option, but the current default is chosen because it performs better on the latest checked MovieLens small offline run. The model stack intentionally stays lightweight so the project can emphasize correct ML system design, leakage-safe evaluation, modularity, and reproducibility.
 
 ## Intended Use
 
@@ -65,7 +65,7 @@ All aggregate features are fit on training data only.
 2. Clean ratings and movie metadata.
 3. Hold out each user's latest interaction for test.
 4. Fit candidate generators on training data.
-5. Generate training candidates.
+5. Generate training candidates using popularity, item-item similarity, and SVD matrix-factorization retrieval.
 6. Add positive training pairs from high-rating training interactions.
 7. Sample negative user-item candidates.
 8. Build ranking features.
@@ -91,7 +91,7 @@ docs/sample_metrics.json
 
 ## Known Limitations
 
-- The ranker is a baseline model, not an optimized production ranker.
+- The ranker is a linear baseline, not an optimized production ranker.
 - Negative sampling is simple and can be improved.
 - The model does not use tags, temporal decay, sequence features, or text metadata.
 - No demographic features are used because MovieLens Latest Small does not provide them.
@@ -102,6 +102,6 @@ docs/sample_metrics.json
 
 - Add stronger feature engineering around recency and genre preferences.
 - Add hard-negative sampling from high-ranking false positives.
-- Compare multiple sklearn rankers.
+- Compare logistic regression, gradient boosting, and random forest rankers.
 - Add artifact versioning and model registry metadata.
 - Add an API serving layer after the offline and batch paths are stable.

@@ -7,6 +7,7 @@ from typing import Set
 
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 
 from cinematch.constants import ITEM_ID, LABEL, SCORE, USER_ID
@@ -97,13 +98,29 @@ def build_training_candidates(
 
 
 @dataclass
-class LogisticRegressionRanker:
-    """Simple sklearn-based ranker for candidate scoring."""
+class SklearnRanker:
+    """Configurable sklearn-based ranker for candidate scoring."""
 
+    model_type: str = "logistic_regression"
     max_iter: int = 1000
-    model_: LogisticRegression | None = None
+    model_: LogisticRegression | HistGradientBoostingClassifier | None = None
 
-    def fit(self, feature_frame: pd.DataFrame) -> "LogisticRegressionRanker":
+    def _build_model(self) -> LogisticRegression | HistGradientBoostingClassifier:
+        """Instantiate the configured sklearn ranking model."""
+
+        if self.model_type == "logistic_regression":
+            return LogisticRegression(max_iter=self.max_iter, random_state=0)
+        if self.model_type == "hist_gradient_boosting":
+            return HistGradientBoostingClassifier(
+                max_iter=self.max_iter,
+                learning_rate=0.05,
+                max_leaf_nodes=31,
+                l2_regularization=0.01,
+                random_state=0,
+            )
+        raise ValueError(f"Unsupported ranker model_type: {self.model_type}")
+
+    def fit(self, feature_frame: pd.DataFrame) -> "SklearnRanker":
         """Fit the ranking model from labeled feature rows."""
 
         if LABEL not in feature_frame.columns:
@@ -112,7 +129,7 @@ class LogisticRegressionRanker:
         if labels.nunique() < 2:
             raise ValueError("Ranker training requires both positive and negative labels.")
 
-        model = LogisticRegression(max_iter=self.max_iter, random_state=0)
+        model = self._build_model()
         model.fit(feature_frame[FEATURE_COLUMNS], labels)
         self.model_ = model
         return self
@@ -121,7 +138,7 @@ class LogisticRegressionRanker:
         """Predict ranking scores for candidate feature rows."""
 
         if self.model_ is None:
-            raise RuntimeError("LogisticRegressionRanker must be fit before predict_scores.")
+            raise RuntimeError("SklearnRanker must be fit before predict_scores.")
 
         scored = feature_frame[[USER_ID, ITEM_ID]].copy()
         scored[SCORE] = self.model_.predict_proba(feature_frame[FEATURE_COLUMNS])[:, 1]
@@ -138,7 +155,8 @@ def train_ranker(
     negatives_per_positive: int,
     random_seed: int,
     max_iter: int,
-) -> tuple[FeatureBuilder, LogisticRegressionRanker, pd.DataFrame]:
+    model_type: str = "logistic_regression",
+) -> tuple[FeatureBuilder, SklearnRanker, pd.DataFrame]:
     """Build ranking features, train a ranker, and return training diagnostics."""
 
     feature_builder = FeatureBuilder().fit(train_interactions, movies)
@@ -152,5 +170,8 @@ def train_ranker(
     feature_frame = feature_builder.transform(labeled_candidates)
     feature_frame[LABEL] = labeled_candidates[LABEL].values
 
-    ranker = LogisticRegressionRanker(max_iter=max_iter).fit(feature_frame)
+    ranker = SklearnRanker(model_type=model_type, max_iter=max_iter).fit(feature_frame)
     return feature_builder, ranker, feature_frame
+
+
+LogisticRegressionRanker = SklearnRanker

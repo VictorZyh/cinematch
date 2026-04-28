@@ -92,8 +92,10 @@ def _config(tmp_path: Path) -> ProjectConfig:
         candidate=CandidateConfig(
             num_candidates=3,
             num_similar_items=2,
+            num_factors=2,
             popularity_weight=0.5,
-            similarity_weight=0.5,
+            similarity_weight=0.3,
+            matrix_factorization_weight=0.2,
         ),
         ranking=RankingConfig(
             negative_samples_per_positive=2,

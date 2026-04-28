@@ -64,8 +64,11 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
 
     candidate_generator = create_default_candidate_generator(
         num_similar_items=config.candidate.num_similar_items,
+        num_factors=config.candidate.num_factors,
         popularity_weight=config.candidate.popularity_weight,
         similarity_weight=config.candidate.similarity_weight,
+        matrix_factorization_weight=config.candidate.matrix_factorization_weight,
+        random_seed=config.random_seed,
     ).fit(split.train)
 
     train_candidates = candidate_generator.generate(
@@ -81,6 +84,7 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
         negatives_per_positive=config.ranking.negative_samples_per_positive,
         random_seed=config.random_seed,
         max_iter=config.ranking.max_iter,
+        model_type=config.ranking.model_type,
     )
 
     test_candidates = candidate_generator.generate(

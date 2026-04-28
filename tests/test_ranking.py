@@ -9,6 +9,7 @@ from cinematch.constants import ITEM_ID, LABEL, SCORE
 from cinematch.features import FeatureBuilder
 from cinematch.ranking import (
     LogisticRegressionRanker,
+    SklearnRanker,
     build_positive_pairs,
     build_training_candidates,
     sample_negative_pairs,
@@ -91,6 +92,29 @@ def test_logistic_regression_ranker_fit_and_predict_scores() -> None:
     assert scores[SCORE].between(0.0, 1.0).all()
 
 
+def test_hist_gradient_boosting_ranker_fit_and_predict_scores() -> None:
+    feature_builder = FeatureBuilder().fit(_interactions(), _movies())
+    training = build_training_candidates(_candidates(), _interactions(), 4.0, 2, 42)
+    feature_frame = feature_builder.transform(training)
+    feature_frame[LABEL] = training[LABEL].values
+
+    ranker = SklearnRanker(model_type="hist_gradient_boosting", max_iter=20).fit(feature_frame)
+    scores = ranker.predict_scores(feature_builder.transform(_candidates()))
+
+    assert not scores.empty
+    assert scores[SCORE].between(0.0, 1.0).all()
+
+
+def test_sklearn_ranker_rejects_unknown_model_type() -> None:
+    feature_builder = FeatureBuilder().fit(_interactions(), _movies())
+    training = build_training_candidates(_candidates(), _interactions(), 4.0, 2, 42)
+    feature_frame = feature_builder.transform(training)
+    feature_frame[LABEL] = training[LABEL].values
+
+    with pytest.raises(ValueError, match="Unsupported ranker"):
+        SklearnRanker(model_type="unknown").fit(feature_frame)
+
+
 def test_logistic_regression_ranker_requires_fit_before_predict() -> None:
     with pytest.raises(RuntimeError, match="must be fit"):
         LogisticRegressionRanker().predict_scores(pd.DataFrame())
@@ -105,6 +129,7 @@ def test_train_ranker_returns_feature_builder_ranker_and_training_frame() -> Non
         negatives_per_positive=2,
         random_seed=42,
         max_iter=200,
+        model_type="logistic_regression",
     )
 
     assert isinstance(feature_builder, FeatureBuilder)

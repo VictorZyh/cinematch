@@ -23,6 +23,7 @@ Important settings:
 - test interactions per user: `1`
 - candidate count per user: `100`
 - item similarity neighbors: `50`
+- matrix factorization factors: `32`
 - ranker: logistic regression
 - negative samples per positive: `4`
 - K values: `5, 10, 20`
@@ -56,18 +57,18 @@ Sample metrics are available in:
 docs/sample_metrics.json
 ```
 
-Summary:
+Latest default summary:
 
 ```text
-Recall@5:  0.0413
-Recall@10: 0.0854
-Recall@20: 0.1295
-nDCG@5:    0.0260
-nDCG@10:   0.0403
-nDCG@20:   0.0516
-HitRate@5:  0.0413
-HitRate@10: 0.0854
-HitRate@20: 0.1295
+Recall@5:  0.0523
+Recall@10: 0.0909
+Recall@20: 0.1433
+nDCG@5:    0.0291
+nDCG@10:   0.0412
+nDCG@20:   0.0544
+HitRate@5:  0.0523
+HitRate@10: 0.0909
+HitRate@20: 0.1433
 ```
 
 These numbers are reasonable for a first baseline with simple features and limited candidate generation. The most important outcome at this stage is that the system evaluates the right prediction problem without temporal leakage.
@@ -82,6 +83,20 @@ The current catalog coverage is limited because the hybrid candidate generator r
 - better user preference features
 - stronger negative sampling
 - sequence or recency signals
+
+## Model Comparison Notes
+
+During the model upgrade, several sklearn-only configurations were compared on the same MovieLens Latest Small split:
+
+```text
+configuration       Recall@10  Recall@20  nDCG@10  Coverage
+svd_light_logreg      0.0909     0.1433    0.0412       921
+svd_light_hgb         0.0248     0.0854    0.0118       921
+svd_tiny_logreg       0.0882     0.1350    0.0413       827
+svd_none_hgb          0.0193     0.0882    0.0072       807
+```
+
+The selected default is `svd_light_logreg`: a hybrid retriever with a small SVD component and a logistic regression ranker. Histogram gradient boosting remains available through config, but it is not the default because it underperformed on this feature set and sampling strategy.
 
 ## Reproduction
 

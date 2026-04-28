@@ -7,6 +7,7 @@ from typing import Dict, Iterable, List, Protocol, Set
 
 import pandas as pd
 from sklearn.neighbors import NearestNeighbors
+from sklearn.decomposition import TruncatedSVD
 import numpy as np
 
 from cinematch.constants import ITEM_ID, RATING, SCORE, USER_ID
@@ -191,6 +192,94 @@ class ItemSimilarityCandidateGenerator:
 
 
 @dataclass
+class MatrixFactorizationCandidateGenerator:
+    """Generate candidates with latent factors from truncated SVD.
+
+    This is a lightweight matrix-factorization retrieval model. It factorizes
+    the user-item rating matrix into dense user and item embeddings, then scores
+    candidate items with the dot product between user and item factors.
+    """
+
+    num_factors: int = 32
+    random_seed: int = 42
+    user_ids_: np.ndarray | None = None
+    item_ids_: np.ndarray | None = None
+    user_factors_: np.ndarray | None = None
+    item_factors_: np.ndarray | None = None
+    user_to_index_: Dict[int, int] | None = None
+
+    def fit(self, interactions: pd.DataFrame) -> "MatrixFactorizationCandidateGenerator":
+        """Fit latent user and item factors from training interactions only."""
+
+        user_item = interactions.pivot_table(
+            index=USER_ID,
+            columns=ITEM_ID,
+            values=RATING,
+            aggfunc="mean",
+            fill_value=0.0,
+        )
+        user_ids = user_item.index.to_numpy(dtype=np.int64)
+        item_ids = user_item.columns.to_numpy(dtype=np.int64)
+        matrix = user_item.to_numpy(dtype=np.float64)
+
+        max_components = max(1, min(matrix.shape) - 1)
+        n_components = min(self.num_factors, max_components)
+        svd = TruncatedSVD(n_components=n_components, random_state=self.random_seed)
+        user_factors = svd.fit_transform(matrix)
+        item_factors = svd.components_.T
+
+        self.user_ids_ = user_ids
+        self.item_ids_ = item_ids
+        self.user_factors_ = user_factors
+        self.item_factors_ = item_factors
+        self.user_to_index_ = {int(user_id): index for index, user_id in enumerate(user_ids)}
+        return self
+
+    def generate(
+        self,
+        user_ids: Iterable[int],
+        seen_items_by_user: Dict[int, Set[int]],
+        num_candidates: int,
+    ) -> pd.DataFrame:
+        """Generate latent-factor candidates while excluding seen items."""
+
+        if (
+            self.user_to_index_ is None
+            or self.item_ids_ is None
+            or self.user_factors_ is None
+            or self.item_factors_ is None
+        ):
+            raise RuntimeError("MatrixFactorizationCandidateGenerator must be fit before generate.")
+
+        rows: List[dict[str, float | int]] = []
+        for user_id in user_ids:
+            user_id_int = int(user_id)
+            user_index = self.user_to_index_.get(user_id_int)
+            if user_index is None:
+                continue
+            scores = self.item_factors_ @ self.user_factors_[user_index]
+            seen_items = seen_items_by_user.get(user_id_int, set())
+            ranked_indices = np.argsort(-scores)
+            user_count = 0
+            for item_index in ranked_indices:
+                item_id = int(self.item_ids_[item_index])
+                if item_id in seen_items:
+                    continue
+                rows.append(
+                    {
+                        USER_ID: user_id_int,
+                        ITEM_ID: item_id,
+                        SCORE: float(scores[item_index]),
+                    }
+                )
+                user_count += 1
+                if user_count >= num_candidates:
+                    break
+
+        return _candidate_rows_to_frame(rows)
+
+
+@dataclass
 class HybridCandidateGenerator:
     """Combine multiple candidate generators into a single scored candidate set."""
 
@@ -260,8 +349,11 @@ class HybridCandidateGenerator:
 
 def create_default_candidate_generator(
     num_similar_items: int,
+    num_factors: int,
     popularity_weight: float,
     similarity_weight: float,
+    matrix_factorization_weight: float,
+    random_seed: int = 42,
 ) -> HybridCandidateGenerator:
     """Create the default production-style hybrid candidate generator."""
 
@@ -269,6 +361,10 @@ def create_default_candidate_generator(
         generators=[
             PopularityCandidateGenerator(),
             ItemSimilarityCandidateGenerator(num_similar_items=num_similar_items),
+            MatrixFactorizationCandidateGenerator(
+                num_factors=num_factors,
+                random_seed=random_seed,
+            ),
         ],
-        weights=[popularity_weight, similarity_weight],
+        weights=[popularity_weight, similarity_weight, matrix_factorization_weight],
     )

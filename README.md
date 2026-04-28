@@ -3,7 +3,7 @@
 CineMatch is a production-style, end-to-end movie recommendation system built on MovieLens.
 The project focuses on clean machine-learning engineering: modular code, leakage-safe evaluation, reproducible training, unit tests, and a runnable pipeline.
 
-The current model is intentionally a reliable baseline rather than an overfit research model. The architecture makes it easy to replace or improve candidate generation, ranking features, or the ranker later.
+The current model uses lightweight mainstream recommender components while staying within a simple pandas/numpy/sklearn stack. The architecture makes it easy to replace or improve candidate generation, ranking features, or the ranker later.
 
 ## What It Does
 
@@ -12,11 +12,13 @@ CineMatch trains and evaluates a two-stage recommender:
 1. **Candidate generation**
    - Popularity-based retrieval
    - Item-item collaborative filtering with cosine nearest neighbors
+   - Matrix-factorization retrieval with `sklearn.decomposition.TruncatedSVD`
    - Weighted hybrid candidate merging
 
 2. **Ranking**
    - Leakage-safe user, item, genre, and candidate-source features
-   - Supervised baseline ranker using `sklearn.linear_model.LogisticRegression`
+   - Supervised sklearn ranker, with logistic regression as the current default
+   - Optional `HistGradientBoostingClassifier` experiment path
 
 3. **Evaluation**
    - Timestamp-based train/test split

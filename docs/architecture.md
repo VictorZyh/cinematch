@@ -55,6 +55,7 @@ Owns retrieval. It generates a manageable set of user-item candidates from:
 
 - global popularity
 - item-item collaborative filtering
+- matrix factorization with truncated SVD
 - weighted hybrid merging
 
 Candidate generation excludes items already seen in the training history.
@@ -65,7 +66,7 @@ Owns ranking feature construction. It fits user/item/genre statistics on trainin
 
 ### `ranking.py`
 
-Owns supervised ranking. It builds positive and negative training examples, trains a baseline logistic regression ranker, and scores candidates.
+Owns supervised ranking. It builds positive and negative training examples, trains a configurable sklearn ranker, and scores candidates. The default ranker is histogram-based gradient boosting.
 
 ### `evaluation.py`
 

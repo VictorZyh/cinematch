@@ -34,8 +34,10 @@ class CandidateConfig:
 
     num_candidates: int
     num_similar_items: int
+    num_factors: int
     popularity_weight: float
     similarity_weight: float
+    matrix_factorization_weight: float
 
 
 @dataclass(frozen=True)
@@ -111,8 +113,12 @@ def load_config(config_path: str | Path) -> ProjectConfig:
         candidate=CandidateConfig(
             num_candidates=int(raw_config["candidate"]["num_candidates"]),
             num_similar_items=int(raw_config["candidate"]["num_similar_items"]),
+            num_factors=int(raw_config["candidate"]["num_factors"]),
             popularity_weight=float(raw_config["candidate"]["popularity_weight"]),
             similarity_weight=float(raw_config["candidate"]["similarity_weight"]),
+            matrix_factorization_weight=float(
+                raw_config["candidate"]["matrix_factorization_weight"]
+            ),
         ),
         ranking=RankingConfig(
             negative_samples_per_positive=int(raw_config["ranking"]["negative_samples_per_positive"]),
