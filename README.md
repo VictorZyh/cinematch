@@ -42,16 +42,19 @@ cinematch/
 │   ├── architecture.md
 │   └── data.md
 ├── scripts/
+│   ├── batch_recommend.py
 │   ├── download_movielens.py
 │   └── run_pipeline.py
 ├── src/
 │   └── cinematch/
+│       ├── artifacts.py
 │       ├── candidate.py
 │       ├── config.py
 │       ├── constants.py
 │       ├── data_loader.py
 │       ├── evaluation.py
 │       ├── features.py
+│       ├── inference.py
 │       ├── pipeline.py
 │       ├── preprocessing.py
 │       ├── ranking.py
@@ -121,9 +124,13 @@ The pipeline writes artifacts to:
 
 ```text
 artifacts/
+├── candidate_generator.pkl
+├── feature_builder.pkl
 ├── metrics.json
+├── ranker.pkl
 ├── recommendations.csv
-└── run_metadata.json
+├── run_metadata.json
+└── train_interactions.pkl
 ```
 
 Example command:
@@ -132,13 +139,37 @@ Example command:
 PYTHONPATH=src python scripts/run_pipeline.py --config configs/default.json
 ```
 
+## Batch Inference
+
+After running the training pipeline, create a user file:
+
+```bash
+printf "1\n2\n3\n" > artifacts/users.txt
+```
+
+Generate recommendations from saved artifacts:
+
+```bash
+PYTHONPATH=src python scripts/batch_recommend.py \
+  --artifact-dir artifacts \
+  --user-file artifacts/users.txt \
+  --output-path artifacts/batch_recommendations.csv \
+  --top-k 10
+```
+
+Or use:
+
+```bash
+make recommend
+```
+
 ## Current Test Status
 
 Local validation:
 
 ```text
-42 passed
-Total coverage: 93.83%
+47 passed
+Total coverage: >90%
 ```
 
 The GitHub Actions workflow also runs the test suite on push and pull request.
@@ -155,8 +186,6 @@ The GitHub Actions workflow also runs the test suite on push and pull request.
 
 ## Next Improvements
 
-- Add model serialization and loading
-- Add batch inference for selected users
 - Add feature importance and diagnostics
 - Add stronger ranking models and better negative sampling
 - Add experiment tracking with metrics history

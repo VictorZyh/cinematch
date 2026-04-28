@@ -1,4 +1,4 @@
-.PHONY: install test download run clean
+.PHONY: install test download run recommend clean
 
 PYTHON ?= python3
 VENV ?= .venv
@@ -17,6 +17,9 @@ download:
 
 run:
 	PYTHONPATH=src $(VENV_PYTHON) scripts/run_pipeline.py --config configs/default.json
+
+recommend:
+	PYTHONPATH=src $(VENV_PYTHON) scripts/batch_recommend.py --artifact-dir artifacts --user-file artifacts/users.txt --output-path artifacts/batch_recommendations.csv --top-k 10
 
 clean:
 	rm -rf artifacts data/processed .pytest_cache .coverage htmlcov build dist *.egg-info

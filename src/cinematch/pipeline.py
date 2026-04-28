@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from cinematch.artifacts import default_artifact_paths, save_pickle
 from cinematch.candidate import build_seen_items, create_default_candidate_generator
 from cinematch.config import ProjectConfig, load_config
 from cinematch.data_loader import load_movielens_data
@@ -100,8 +101,13 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
     recommendations_path = output_dir / "recommendations.csv"
     metrics_path = output_dir / "metrics.json"
     metadata_path = output_dir / "run_metadata.json"
+    artifact_paths = default_artifact_paths(output_dir)
     _save_recommendations(scored_candidates, recommendations_path)
     save_json(metrics, metrics_path)
+    save_pickle(candidate_generator, artifact_paths.candidate_generator)
+    save_pickle(feature_builder, artifact_paths.feature_builder)
+    save_pickle(ranker, artifact_paths.ranker)
+    save_pickle(split.train, artifact_paths.train_interactions)
 
     metadata: dict[str, float | str] = {
         "project_name": config.project_name,
@@ -116,6 +122,10 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
         "training_examples": float(len(training_frame)),
         "recommendations_path": str(recommendations_path),
         "metrics_path": str(metrics_path),
+        "candidate_generator_path": str(artifact_paths.candidate_generator),
+        "feature_builder_path": str(artifact_paths.feature_builder),
+        "ranker_path": str(artifact_paths.ranker),
+        "train_interactions_path": str(artifact_paths.train_interactions),
     }
     save_json(metadata, metadata_path)
     return {**metadata, **metrics}

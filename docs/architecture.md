@@ -30,6 +30,9 @@ evaluation.py
         |
         v
 artifacts/
+        |
+        v
+batch_recommend.py
 ```
 
 ## Module Boundaries
@@ -72,6 +75,14 @@ Owns top-K recommender metrics using held-out future interactions.
 
 Owns orchestration and artifact writing. It is intentionally thin and delegates ML logic to the modules above.
 
+### `artifacts.py`
+
+Owns serialization and loading of trained components.
+
+### `inference.py`
+
+Owns batch recommendation generation from saved artifacts.
+
 ## Leakage Controls
 
 - Test interactions are later than training interactions for the same user.
@@ -87,4 +98,4 @@ The safest future improvements are:
 - Replace `LogisticRegressionRanker` with another sklearn model.
 - Add additional feature columns in `FeatureBuilder`.
 - Add a new candidate generator implementing the same `fit` and `generate` interface.
-- Add model persistence after the offline pipeline is stable.
+- Add API serving after batch inference is stable.
