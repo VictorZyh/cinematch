@@ -52,6 +52,7 @@ Completed:
 - MovieLens data loading and schema validation
 - MovieLens preprocessing for ratings, movies, and genres
 - Leakage-safe timestamp-based train/test splitting
+- Candidate generation with popularity, item-item similarity, and hybrid retrieval
 
 Implementation modules will be added incrementally.
 
