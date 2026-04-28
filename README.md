@@ -54,6 +54,7 @@ Completed:
 - Leakage-safe timestamp-based train/test splitting
 - Candidate generation with popularity, item-item similarity, and hybrid retrieval
 - Leakage-safe ranking features, baseline sklearn ranker, and top-K evaluation
+- End-to-end pipeline that saves metrics and scored recommendations
 
 Implementation modules will be added incrementally.
 
@@ -63,4 +64,13 @@ Implementation modules will be added incrementally.
 python scripts/run_pipeline.py --config configs/default.json
 ```
 
-The command will load data, create a leakage-safe split, generate candidates, train a ranking model, evaluate top-K metrics, and save reproducible artifacts.
+The command loads data, creates a leakage-safe split, generates candidates, trains a ranking model, evaluates top-K metrics, and saves reproducible artifacts.
+
+Pipeline artifacts:
+
+```text
+artifacts/
+├── metrics.json
+├── recommendations.csv
+└── run_metadata.json
+```
