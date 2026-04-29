@@ -149,6 +149,15 @@ PYTHONPATH=src python scripts/run_pipeline.py --config configs/default.json
 - [Experiment report](docs/experiment_report.md)
 - [Sample metrics](docs/sample_metrics.json)
 
+Latest default MovieLens small run:
+
+```text
+Recall@10: 0.1129
+Recall@20: 0.1653
+nDCG@10:   0.0463
+Coverage:  2684
+```
+
 ## Batch Inference
 
 After running the training pipeline, create a user file:
@@ -178,8 +187,8 @@ make recommend
 Local validation:
 
 ```text
-47 passed
-Total coverage: >90%
+51 passed
+Total coverage: 94.23%
 ```
 
 The GitHub Actions workflow also runs the test suite on push and pull request.

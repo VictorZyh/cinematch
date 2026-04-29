@@ -56,6 +56,8 @@ The current ranker uses:
 - item average rating
 - item popularity score
 - user-item genre overlap
+- user-item genre Jaccard similarity
+- user-item genre affinity score
 
 All aggregate features are fit on training data only.
 

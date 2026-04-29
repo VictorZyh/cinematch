@@ -14,12 +14,12 @@
     "min_train_interactions_per_user": 2
   },
   "candidate": {
-    "num_candidates": 100,
-    "num_similar_items": 50,
-    "num_factors": 32,
-    "popularity_weight": 0.30,
+    "num_candidates": 500,
+    "num_similar_items": 100,
+    "num_factors": 64,
+    "popularity_weight": 0.25,
     "similarity_weight": 0.60,
-    "matrix_factorization_weight": 0.10
+    "matrix_factorization_weight": 0.15
   },
   "ranking": {
     "negative_samples_per_positive": 4,

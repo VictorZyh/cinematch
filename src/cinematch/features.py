@@ -19,6 +19,8 @@ FEATURE_COLUMNS = [
     "item_avg_rating",
     "item_popularity_score",
     "user_item_genre_overlap",
+    "user_item_genre_jaccard",
+    "user_item_genre_affinity",
 ]
 
 
@@ -32,6 +34,7 @@ class FeatureBuilder:
     item_stats_: pd.DataFrame | None = None
     item_genres_: Dict[int, Set[str]] | None = None
     user_genres_: Dict[int, Set[str]] | None = None
+    user_genre_affinity_: Dict[int, Dict[str, float]] | None = None
 
     def fit(self, train_interactions: pd.DataFrame, movies: pd.DataFrame) -> "FeatureBuilder":
         """Fit aggregate feature state using only training interactions."""
@@ -56,19 +59,41 @@ class FeatureBuilder:
         }
 
         train_with_genres = train_interactions[[USER_ID, ITEM_ID]].copy()
+        train_with_genres[RATING] = train_interactions[RATING].values
         train_with_genres["genre_list"] = train_with_genres[ITEM_ID].map(item_genres)
         user_genres: Dict[int, Set[str]] = {}
+        user_genre_ratings: Dict[int, Dict[str, list[float]]] = {}
         for user_id, user_rows in train_with_genres.groupby(USER_ID):
+            user_id_int = int(user_id)
             genres: Set[str] = set()
             for genre_list in user_rows["genre_list"]:
                 if isinstance(genre_list, set):
                     genres.update(genre_list)
-            user_genres[int(user_id)] = genres
+            user_genres[user_id_int] = genres
+
+            genre_ratings: Dict[str, list[float]] = {}
+            for _, row in user_rows.iterrows():
+                genre_list = row["genre_list"]
+                if not isinstance(genre_list, set):
+                    continue
+                for genre in genre_list:
+                    genre_ratings.setdefault(genre, []).append(float(row[RATING]))
+            user_genre_ratings[user_id_int] = genre_ratings
+
+        user_genre_affinity = {
+            user_id: {
+                genre: float(np.mean(ratings))
+                for genre, ratings in genre_ratings.items()
+                if ratings
+            }
+            for user_id, genre_ratings in user_genre_ratings.items()
+        }
 
         self.user_stats_ = user_stats
         self.item_stats_ = item_stats
         self.item_genres_ = item_genres
         self.user_genres_ = user_genres
+        self.user_genre_affinity_ = user_genre_affinity
         return self
 
     def transform(self, candidates: pd.DataFrame) -> pd.DataFrame:
@@ -95,6 +120,14 @@ class FeatureBuilder:
             self._genre_overlap(int(user_id), int(item_id))
             for user_id, item_id in zip(features[USER_ID], features[ITEM_ID])
         ]
+        features["user_item_genre_jaccard"] = [
+            self._genre_jaccard(int(user_id), int(item_id))
+            for user_id, item_id in zip(features[USER_ID], features[ITEM_ID])
+        ]
+        features["user_item_genre_affinity"] = [
+            self._genre_affinity(int(user_id), int(item_id))
+            for user_id, item_id in zip(features[USER_ID], features[ITEM_ID])
+        ]
         return features[[USER_ID, ITEM_ID, *FEATURE_COLUMNS]]
 
     def _genre_overlap(self, user_id: int, item_id: int) -> float:
@@ -108,3 +141,36 @@ class FeatureBuilder:
         if not item_genres:
             return 0.0
         return float(len(user_genres.intersection(item_genres)) / len(item_genres))
+
+    def _genre_jaccard(self, user_id: int, item_id: int) -> float:
+        """Compute Jaccard similarity between user history genres and item genres."""
+
+        if self.user_genres_ is None or self.item_genres_ is None:
+            raise RuntimeError("FeatureBuilder must be fit before computing genre jaccard.")
+
+        user_genres = self.user_genres_.get(user_id, set())
+        item_genres = self.item_genres_.get(item_id, set())
+        union = user_genres.union(item_genres)
+        if not union:
+            return 0.0
+        return float(len(user_genres.intersection(item_genres)) / len(union))
+
+    def _genre_affinity(self, user_id: int, item_id: int) -> float:
+        """Compute the user's average historical rating for an item's genres."""
+
+        if self.user_genre_affinity_ is None or self.item_genres_ is None:
+            raise RuntimeError("FeatureBuilder must be fit before computing genre affinity.")
+
+        item_genres = self.item_genres_.get(item_id, set())
+        if not item_genres:
+            return self.global_avg_rating_
+
+        user_affinity = self.user_genre_affinity_.get(user_id, {})
+        matched_scores = [
+            user_affinity[genre]
+            for genre in item_genres
+            if genre in user_affinity
+        ]
+        if not matched_scores:
+            return self.global_avg_rating_
+        return float(np.mean(matched_scores))

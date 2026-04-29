@@ -41,6 +41,8 @@ def test_feature_builder_adds_expected_feature_columns() -> None:
     assert set(FEATURE_COLUMNS).issubset(features.columns)
     assert features["candidate_score"].tolist() == [0.8]
     assert features["user_item_genre_overlap"].tolist() == [0.5]
+    assert features["user_item_genre_jaccard"].tolist() == [1 / 3]
+    assert features["user_item_genre_affinity"].tolist() == [5.0]
 
 
 def test_feature_builder_uses_fallbacks_for_unknown_user_or_item() -> None:
@@ -51,6 +53,7 @@ def test_feature_builder_uses_fallbacks_for_unknown_user_or_item() -> None:
     assert features["user_rating_count"].tolist() == [0.0]
     assert features["item_popularity_score"].tolist() == [0.0]
     assert features[SCORE.replace("score", "candidate_score")].tolist() == [0.1]
+    assert features["user_item_genre_overlap"].tolist() == [0.0]
 
 
 def test_feature_builder_requires_fit() -> None:

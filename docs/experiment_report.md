@@ -21,9 +21,9 @@ Important settings:
 - dataset path: `data/raw/ml-latest-small`
 - positive rating threshold: `4.0`
 - test interactions per user: `1`
-- candidate count per user: `100`
-- item similarity neighbors: `50`
-- matrix factorization factors: `32`
+- candidate count per user: `500`
+- item similarity neighbors: `100`
+- matrix factorization factors: `64`
 - ranker: logistic regression
 - negative samples per positive: `4`
 - K values: `5, 10, 20`
@@ -44,8 +44,8 @@ ratings rows: 100,836
 movies rows: 9,742
 train rows: 100,226
 test rows: 610
-train candidate rows: 61,000
-test candidate rows: 61,000
+train candidate rows: 305,000
+test candidate rows: 305,000
 training examples: 109,217
 ```
 
@@ -61,14 +61,14 @@ Latest default summary:
 
 ```text
 Recall@5:  0.0523
-Recall@10: 0.0909
-Recall@20: 0.1433
-nDCG@5:    0.0291
-nDCG@10:   0.0412
-nDCG@20:   0.0544
+Recall@10: 0.1129
+Recall@20: 0.1653
+nDCG@5:    0.0267
+nDCG@10:   0.0463
+nDCG@20:   0.0597
 HitRate@5:  0.0523
-HitRate@10: 0.0909
-HitRate@20: 0.1433
+HitRate@10: 0.1129
+HitRate@20: 0.1653
 ```
 
 These numbers are reasonable for a first baseline with simple features and limited candidate generation. The most important outcome at this stage is that the system evaluates the right prediction problem without temporal leakage.
@@ -90,13 +90,14 @@ During the model upgrade, several sklearn-only configurations were compared on t
 
 ```text
 configuration       Recall@10  Recall@20  nDCG@10  Coverage
+wide_svd_logreg       0.1129     0.1653    0.0463      2684
 svd_light_logreg      0.0909     0.1433    0.0412       921
 svd_light_hgb         0.0248     0.0854    0.0118       921
 svd_tiny_logreg       0.0882     0.1350    0.0413       827
 svd_none_hgb          0.0193     0.0882    0.0072       807
 ```
 
-The selected default is `svd_light_logreg`: a hybrid retriever with a small SVD component and a logistic regression ranker. Histogram gradient boosting remains available through config, but it is not the default because it underperformed on this feature set and sampling strategy.
+The selected default is `wide_svd_logreg`: a wider hybrid retriever with SVD matrix-factorization candidates and a logistic regression ranker. Histogram gradient boosting remains available through config, but it is not the default because it underperformed on this feature set and sampling strategy.
 
 ## Reproduction
 
