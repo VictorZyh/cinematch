@@ -280,6 +280,188 @@ class MatrixFactorizationCandidateGenerator:
 
 
 @dataclass
+class BPRCandidateGenerator:
+    """Generate candidates with Bayesian Personalized Ranking matrix factorization.
+
+    BPR optimizes a pairwise ranking objective: for a user, observed positive
+    items should score higher than sampled unobserved items. This aligns better
+    with top-K recommendation than reconstructing explicit ratings.
+    """
+
+    num_factors: int = 48
+    num_epochs: int = 12
+    samples_per_epoch: int = 60000
+    learning_rate: float = 0.05
+    regularization: float = 0.01
+    positive_threshold: float = 4.0
+    random_seed: int = 42
+    user_ids_: np.ndarray | None = None
+    item_ids_: np.ndarray | None = None
+    user_factors_: np.ndarray | None = None
+    item_factors_: np.ndarray | None = None
+    item_bias_: np.ndarray | None = None
+    user_to_index_: Dict[int, int] | None = None
+    item_to_index_: Dict[int, int] | None = None
+    positive_items_by_user_index_: Dict[int, np.ndarray] | None = None
+    positive_item_sets_by_user_index_: Dict[int, Set[int]] | None = None
+
+    def fit(self, interactions: pd.DataFrame) -> "BPRCandidateGenerator":
+        """Fit BPR latent factors from positive training interactions."""
+
+        positives = interactions.loc[interactions[RATING] >= self.positive_threshold]
+        if positives.empty:
+            raise ValueError("BPRCandidateGenerator requires at least one positive interaction.")
+
+        user_ids = np.sort(interactions[USER_ID].unique()).astype(np.int64)
+        item_ids = np.sort(interactions[ITEM_ID].unique()).astype(np.int64)
+        user_to_index = {int(user_id): index for index, user_id in enumerate(user_ids)}
+        item_to_index = {int(item_id): index for index, item_id in enumerate(item_ids)}
+
+        positive_items_by_user_index: Dict[int, np.ndarray] = {}
+        positive_item_sets_by_user_index: Dict[int, Set[int]] = {}
+        for user_id, user_rows in positives.groupby(USER_ID):
+            user_index = user_to_index[int(user_id)]
+            item_indices = np.array(
+                [item_to_index[int(item_id)] for item_id in user_rows[ITEM_ID].unique()],
+                dtype=np.int64,
+            )
+            positive_items_by_user_index[user_index] = item_indices
+            positive_item_sets_by_user_index[user_index] = set(int(index) for index in item_indices)
+
+        rng = np.random.default_rng(self.random_seed)
+        user_factors = rng.normal(0.0, 0.05, size=(len(user_ids), self.num_factors))
+        item_factors = rng.normal(0.0, 0.05, size=(len(item_ids), self.num_factors))
+        item_bias = np.zeros(len(item_ids), dtype=np.float64)
+        trainable_users = np.array(sorted(positive_items_by_user_index), dtype=np.int64)
+
+        for _ in range(self.num_epochs):
+            for _sample_index in range(self.samples_per_epoch):
+                user_index = int(rng.choice(trainable_users))
+                positive_item_index = int(rng.choice(positive_items_by_user_index[user_index]))
+                negative_item_index = self._sample_negative_item(
+                    rng=rng,
+                    num_items=len(item_ids),
+                    positive_item_set=positive_item_sets_by_user_index[user_index],
+                )
+                self._update_factors(
+                    user_index=user_index,
+                    positive_item_index=positive_item_index,
+                    negative_item_index=negative_item_index,
+                    user_factors=user_factors,
+                    item_factors=item_factors,
+                    item_bias=item_bias,
+                )
+
+        self.user_ids_ = user_ids
+        self.item_ids_ = item_ids
+        self.user_factors_ = user_factors
+        self.item_factors_ = item_factors
+        self.item_bias_ = item_bias
+        self.user_to_index_ = user_to_index
+        self.item_to_index_ = item_to_index
+        self.positive_items_by_user_index_ = positive_items_by_user_index
+        self.positive_item_sets_by_user_index_ = positive_item_sets_by_user_index
+        return self
+
+    def _sample_negative_item(
+        self,
+        rng: np.random.Generator,
+        num_items: int,
+        positive_item_set: Set[int],
+    ) -> int:
+        """Sample one item index that is not positive for the user."""
+
+        while True:
+            item_index = int(rng.integers(0, num_items))
+            if item_index not in positive_item_set:
+                return item_index
+
+    def _update_factors(
+        self,
+        user_index: int,
+        positive_item_index: int,
+        negative_item_index: int,
+        user_factors: np.ndarray,
+        item_factors: np.ndarray,
+        item_bias: np.ndarray,
+    ) -> None:
+        """Apply one BPR stochastic gradient update."""
+
+        user_vector = user_factors[user_index].copy()
+        positive_vector = item_factors[positive_item_index].copy()
+        negative_vector = item_factors[negative_item_index].copy()
+        score_difference = (
+            item_bias[positive_item_index]
+            - item_bias[negative_item_index]
+            + float(user_vector @ (positive_vector - negative_vector))
+        )
+        sigmoid_negative = 1.0 / (1.0 + np.exp(score_difference))
+
+        user_factors[user_index] += self.learning_rate * (
+            sigmoid_negative * (positive_vector - negative_vector)
+            - self.regularization * user_vector
+        )
+        item_factors[positive_item_index] += self.learning_rate * (
+            sigmoid_negative * user_vector
+            - self.regularization * positive_vector
+        )
+        item_factors[negative_item_index] += self.learning_rate * (
+            -sigmoid_negative * user_vector
+            - self.regularization * negative_vector
+        )
+        item_bias[positive_item_index] += self.learning_rate * (
+            sigmoid_negative - self.regularization * item_bias[positive_item_index]
+        )
+        item_bias[negative_item_index] += self.learning_rate * (
+            -sigmoid_negative - self.regularization * item_bias[negative_item_index]
+        )
+
+    def generate(
+        self,
+        user_ids: Iterable[int],
+        seen_items_by_user: Dict[int, Set[int]],
+        num_candidates: int,
+    ) -> pd.DataFrame:
+        """Generate BPR candidates while excluding seen items."""
+
+        if (
+            self.user_to_index_ is None
+            or self.item_ids_ is None
+            or self.user_factors_ is None
+            or self.item_factors_ is None
+            or self.item_bias_ is None
+        ):
+            raise RuntimeError("BPRCandidateGenerator must be fit before generate.")
+
+        rows: List[dict[str, float | int]] = []
+        for user_id in user_ids:
+            user_id_int = int(user_id)
+            user_index = self.user_to_index_.get(user_id_int)
+            if user_index is None:
+                continue
+            scores = self.item_bias_ + (self.item_factors_ @ self.user_factors_[user_index])
+            seen_items = seen_items_by_user.get(user_id_int, set())
+            ranked_indices = np.argsort(-scores)
+            user_count = 0
+            for item_index in ranked_indices:
+                item_id = int(self.item_ids_[item_index])
+                if item_id in seen_items:
+                    continue
+                rows.append(
+                    {
+                        USER_ID: user_id_int,
+                        ITEM_ID: item_id,
+                        SCORE: float(scores[item_index]),
+                    }
+                )
+                user_count += 1
+                if user_count >= num_candidates:
+                    break
+
+        return _candidate_rows_to_frame(rows)
+
+
+@dataclass
 class HybridCandidateGenerator:
     """Combine multiple candidate generators into a single scored candidate set."""
 
@@ -350,9 +532,14 @@ class HybridCandidateGenerator:
 def create_default_candidate_generator(
     num_similar_items: int,
     num_factors: int,
+    bpr_factors: int,
+    bpr_epochs: int,
+    bpr_samples_per_epoch: int,
     popularity_weight: float,
     similarity_weight: float,
     matrix_factorization_weight: float,
+    bpr_weight: float,
+    positive_threshold: float = 4.0,
     random_seed: int = 42,
 ) -> HybridCandidateGenerator:
     """Create the default production-style hybrid candidate generator."""
@@ -365,6 +552,18 @@ def create_default_candidate_generator(
                 num_factors=num_factors,
                 random_seed=random_seed,
             ),
+            BPRCandidateGenerator(
+                num_factors=bpr_factors,
+                num_epochs=bpr_epochs,
+                samples_per_epoch=bpr_samples_per_epoch,
+                positive_threshold=positive_threshold,
+                random_seed=random_seed,
+            ),
         ],
-        weights=[popularity_weight, similarity_weight, matrix_factorization_weight],
+        weights=[
+            popularity_weight,
+            similarity_weight,
+            matrix_factorization_weight,
+            bpr_weight,
+        ],
     )

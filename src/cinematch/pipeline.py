@@ -65,9 +65,14 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
     candidate_generator = create_default_candidate_generator(
         num_similar_items=config.candidate.num_similar_items,
         num_factors=config.candidate.num_factors,
+        bpr_factors=config.candidate.bpr_factors,
+        bpr_epochs=config.candidate.bpr_epochs,
+        bpr_samples_per_epoch=config.candidate.bpr_samples_per_epoch,
         popularity_weight=config.candidate.popularity_weight,
         similarity_weight=config.candidate.similarity_weight,
         matrix_factorization_weight=config.candidate.matrix_factorization_weight,
+        bpr_weight=config.candidate.bpr_weight,
+        positive_threshold=config.data.positive_rating_threshold,
         random_seed=config.random_seed,
     ).fit(split.train)
 

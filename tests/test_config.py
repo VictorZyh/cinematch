@@ -17,5 +17,8 @@ def test_load_default_config_has_expected_values() -> None:
     assert config.candidate.num_candidates == 500
     assert config.candidate.num_similar_items == 100
     assert config.candidate.num_factors == 64
+    assert config.candidate.bpr_factors == 48
+    assert config.candidate.bpr_epochs == 8
+    assert config.candidate.bpr_weight == 0.10
     assert config.ranking.model_type == "logistic_regression"
     assert config.evaluation.k_values == [5, 10, 20]

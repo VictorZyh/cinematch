@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from cinematch.candidate import (
+    BPRCandidateGenerator,
     HybridCandidateGenerator,
     ItemSimilarityCandidateGenerator,
     MatrixFactorizationCandidateGenerator,
@@ -89,14 +90,42 @@ def test_matrix_factorization_generator_requires_fit() -> None:
         MatrixFactorizationCandidateGenerator().generate([1], {}, 10)
 
 
+def test_bpr_generator_scores_unseen_items() -> None:
+    interactions = _interactions()
+    generator = BPRCandidateGenerator(
+        num_factors=3,
+        num_epochs=2,
+        samples_per_epoch=20,
+        positive_threshold=4.0,
+        random_seed=42,
+    ).fit(interactions)
+    candidates = generator.generate(
+        user_ids=[1],
+        seen_items_by_user=build_seen_items(interactions),
+        num_candidates=2,
+    )
+
+    assert not candidates.empty
+    assert not set(candidates[ITEM_ID]).intersection({10, 11})
+
+
+def test_bpr_generator_requires_fit() -> None:
+    with pytest.raises(RuntimeError, match="must be fit"):
+        BPRCandidateGenerator().generate([1], {}, 10)
+
+
 def test_hybrid_candidate_generator_combines_and_limits_candidates() -> None:
     interactions = _interactions()
     generator = create_default_candidate_generator(
         num_similar_items=2,
         num_factors=2,
+        bpr_factors=2,
+        bpr_epochs=1,
+        bpr_samples_per_epoch=10,
         popularity_weight=0.4,
         similarity_weight=0.4,
-        matrix_factorization_weight=0.2,
+        matrix_factorization_weight=0.1,
+        bpr_weight=0.1,
     ).fit(interactions)
 
     candidates = generator.generate(

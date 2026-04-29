@@ -17,9 +17,13 @@
     "num_candidates": 500,
     "num_similar_items": 100,
     "num_factors": 64,
-    "popularity_weight": 0.25,
-    "similarity_weight": 0.60,
-    "matrix_factorization_weight": 0.15
+    "bpr_factors": 48,
+    "bpr_epochs": 8,
+    "bpr_samples_per_epoch": 40000,
+    "popularity_weight": 0.20,
+    "similarity_weight": 0.55,
+    "matrix_factorization_weight": 0.15,
+    "bpr_weight": 0.10
   },
   "ranking": {
     "negative_samples_per_positive": 4,

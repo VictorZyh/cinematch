@@ -13,6 +13,7 @@ CineMatch trains and evaluates a two-stage recommender:
    - Popularity-based retrieval
    - Item-item collaborative filtering with cosine nearest neighbors
    - Matrix-factorization retrieval with `sklearn.decomposition.TruncatedSVD`
+   - Pairwise BPR matrix-factorization retrieval implemented with NumPy
    - Weighted hybrid candidate merging
 
 2. **Ranking**
@@ -152,10 +153,10 @@ PYTHONPATH=src python scripts/run_pipeline.py --config configs/default.json
 Latest default MovieLens small run:
 
 ```text
-Recall@10: 0.1129
-Recall@20: 0.1653
-nDCG@10:   0.0463
-Coverage:  2684
+Recall@10: 0.1157
+Recall@20: 0.1625
+nDCG@10:   0.0477
+Coverage:  2506
 ```
 
 ## Batch Inference
@@ -187,8 +188,8 @@ make recommend
 Local validation:
 
 ```text
-51 passed
-Total coverage: 94.23%
+53 passed
+Total coverage: 94.51%
 ```
 
 The GitHub Actions workflow also runs the test suite on push and pull request.

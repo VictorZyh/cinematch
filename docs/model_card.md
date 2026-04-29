@@ -67,7 +67,7 @@ All aggregate features are fit on training data only.
 2. Clean ratings and movie metadata.
 3. Hold out each user's latest interaction for test.
 4. Fit candidate generators on training data.
-5. Generate training candidates using popularity, item-item similarity, and SVD matrix-factorization retrieval.
+5. Generate training candidates using popularity, item-item similarity, SVD matrix-factorization retrieval, and BPR pairwise matrix factorization.
 6. Add positive training pairs from high-rating training interactions.
 7. Sample negative user-item candidates.
 8. Build ranking features.
