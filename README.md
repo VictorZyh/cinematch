@@ -187,6 +187,16 @@ nDCG@10:   0.0477
 Coverage:  2506
 ```
 
+## Evaluation Metrics
+
+- **Precision@K**: the fraction of the top-K recommended movies that are relevant to the user.
+- **Recall@K**: the fraction of the user's relevant held-out movies that appear in the top-K recommendations.
+- **nDCG@K**: a ranking-quality metric that gives higher credit when relevant movies appear closer to the top of the list.
+- **HitRate@K**: the fraction of users who receive at least one relevant movie in their top-K recommendations.
+- **Catalog Coverage**: the number of unique movies recommended across users; higher coverage means the system recommends a broader part of the catalog.
+
+In this project, a held-out movie is treated as relevant when its rating is at least `4.0`.
+
 ## Batch Inference
 
 After running the training pipeline, create a user file:
