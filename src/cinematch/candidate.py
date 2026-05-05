@@ -308,6 +308,7 @@ class BPRCandidateGenerator:
     def fit(self, interactions: pd.DataFrame) -> "BPRCandidateGenerator":
         """Fit BPR latent factors from positive training interactions."""
 
+        # BPR learns from implicit positives rather than reconstructing ratings directly.
         positives = interactions.loc[interactions[RATING] >= self.positive_threshold]
         if positives.empty:
             raise ValueError("BPRCandidateGenerator requires at least one positive interaction.")
@@ -338,6 +339,7 @@ class BPRCandidateGenerator:
             for _sample_index in range(self.samples_per_epoch):
                 user_index = int(rng.choice(trainable_users))
                 positive_item_index = int(rng.choice(positive_items_by_user_index[user_index]))
+                # Pair each positive item with a sampled unobserved item for ranking loss.
                 negative_item_index = self._sample_negative_item(
                     rng=rng,
                     num_items=len(item_ids),
@@ -390,6 +392,7 @@ class BPRCandidateGenerator:
         user_vector = user_factors[user_index].copy()
         positive_vector = item_factors[positive_item_index].copy()
         negative_vector = item_factors[negative_item_index].copy()
+        # Positive items should score higher than sampled negative items.
         score_difference = (
             item_bias[positive_item_index]
             - item_bias[negative_item_index]
@@ -507,6 +510,7 @@ class HybridCandidateGenerator:
             )
             if frame.empty or weight == 0.0:
                 continue
+            # Normalize each retrieval source before weighted merging.
             normalized = frame.copy()
             score_min = float(normalized[SCORE].min())
             score_max = float(normalized[SCORE].max())

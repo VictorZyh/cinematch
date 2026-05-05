@@ -72,6 +72,7 @@ def build_training_candidates(
     """Build labeled user-item candidates for supervised ranker training."""
 
     positives = build_positive_pairs(interactions, positive_rating_threshold)
+    # Add positives explicitly because seen training items are excluded from retrieval candidates.
     positive_candidates = positives.merge(
         candidate_rows[[USER_ID, ITEM_ID, SCORE]],
         on=[USER_ID, ITEM_ID],
@@ -85,6 +86,7 @@ def build_training_candidates(
         negatives_per_positive=negatives_per_positive,
         random_seed=random_seed,
     )
+    # Negatives are sampled only from retrieved items that are not known positives.
     negative_candidates = negatives.merge(
         candidate_rows[[USER_ID, ITEM_ID, SCORE]],
         on=[USER_ID, ITEM_ID],

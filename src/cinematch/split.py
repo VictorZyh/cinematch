@@ -65,6 +65,7 @@ def time_based_train_test_split(
 
     min_total_interactions = test_interactions_per_user + min_train_interactions_per_user
     interaction_counts = ratings.groupby(USER_ID).size()
+    # Keep only users with enough history for both training and future evaluation.
     eligible_users = interaction_counts[
         interaction_counts >= min_total_interactions
     ].index
@@ -77,6 +78,7 @@ def time_based_train_test_split(
     sorted_ratings = eligible_ratings.sort_values(
         [USER_ID, TIMESTAMP, ITEM_ID]
     ).reset_index(drop=True)
+    # The most recent rows per user become test data to avoid temporal leakage.
     reverse_position = sorted_ratings.groupby(USER_ID).cumcount(ascending=False)
     is_test = reverse_position < test_interactions_per_user
 

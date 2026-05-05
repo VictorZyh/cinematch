@@ -61,6 +61,7 @@ class FeatureBuilder:
         train_with_genres = train_interactions[[USER_ID, ITEM_ID]].copy()
         train_with_genres[RATING] = train_interactions[RATING].values
         train_with_genres["genre_list"] = train_with_genres[ITEM_ID].map(item_genres)
+        # Genre preferences are estimated from training history only to prevent leakage.
         user_genres: Dict[int, Set[str]] = {}
         user_genre_ratings: Dict[int, Dict[str, list[float]]] = {}
         for user_id, user_rows in train_with_genres.groupby(USER_ID):
@@ -116,6 +117,7 @@ class FeatureBuilder:
         features["item_rating_count"] = features["item_rating_count"].fillna(self.global_item_count_)
         features["item_avg_rating"] = features["item_avg_rating"].fillna(self.global_avg_rating_)
         features["item_popularity_score"] = features["item_popularity_score"].fillna(0.0)
+        # Candidate-level genre features help the ranker personalize beyond popularity.
         features["user_item_genre_overlap"] = [
             self._genre_overlap(int(user_id), int(item_id))
             for user_id, item_id in zip(features[USER_ID], features[ITEM_ID])

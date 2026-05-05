@@ -42,6 +42,7 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
     set_random_seed(config.random_seed)
     output_dir = ensure_directory(config.artifacts.output_dir)
 
+    # Stage 1: load, clean, and split data using only past interactions for training.
     raw_data = load_movielens_data(config.data)
     ratings, movies = preprocess_movielens(
         ratings=raw_data.ratings,
@@ -62,6 +63,7 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
     test_user_ids = split.test["userId"].drop_duplicates().tolist()
     seen_items_by_user = build_seen_items(split.train)
 
+    # Stage 2: retrieve a broad candidate pool from multiple lightweight recommenders.
     candidate_generator = create_default_candidate_generator(
         num_similar_items=config.candidate.num_similar_items,
         num_factors=config.candidate.num_factors,
@@ -81,6 +83,7 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
         seen_items_by_user=seen_items_by_user,
         num_candidates=config.candidate.num_candidates,
     )
+    # Stage 3: train a supervised ranker on labeled positive and negative candidates.
     feature_builder, ranker, training_frame = train_ranker(
         candidate_rows=train_candidates,
         train_interactions=split.train,
@@ -100,6 +103,7 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
     test_features = feature_builder.transform(test_candidates)
     scored_candidates = ranker.predict_scores(test_features)
 
+    # Stage 4: evaluate the ranked list against held-out future positives.
     metrics = evaluate_recommendations(
         scored_candidates=scored_candidates,
         test_interactions=split.test,
@@ -113,6 +117,7 @@ def run_pipeline(config: ProjectConfig) -> dict[str, float | str]:
     artifact_paths = default_artifact_paths(output_dir)
     _save_recommendations(scored_candidates, recommendations_path)
     save_json(metrics, metrics_path)
+    # Persist trained components so batch inference can run without retraining.
     save_pickle(candidate_generator, artifact_paths.candidate_generator)
     save_pickle(feature_builder, artifact_paths.feature_builder)
     save_pickle(ranker, artifact_paths.ranker)
