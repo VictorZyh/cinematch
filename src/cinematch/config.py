@@ -99,6 +99,7 @@ def load_config(config_path: str | Path) -> ProjectConfig:
     with path.open("r", encoding="utf-8") as file:
         raw_config: Dict[str, Any] = json.load(file)
 
+    # Convert raw JSON into immutable typed config objects used across modules.
     return ProjectConfig(
         project_name=str(raw_config["project_name"]),
         random_seed=int(raw_config["random_seed"]),

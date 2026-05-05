@@ -36,6 +36,7 @@ def save_pickle(obj: Any, path: str | Path) -> None:
     """Serialize an object to a pickle file."""
 
     output_path = Path(path)
+    # Artifact directories may not exist on a fresh pipeline run.
     ensure_directory(output_path.parent)
     with output_path.open("wb") as file:
         pickle.dump(obj, file)

@@ -27,6 +27,7 @@ class MovieLensData:
 def _read_csv(path: Path) -> pd.DataFrame:
     """Read a CSV file and raise a clear error if it is missing."""
 
+    # Fail early with a clear path if the dataset was not downloaded.
     if not path.exists():
         raise FileNotFoundError(f"Expected data file does not exist: {path}")
     return pd.read_csv(path)
@@ -50,6 +51,7 @@ def validate_columns(frame: pd.DataFrame, required_columns: Iterable[str], table
         If one or more required columns are missing.
     """
 
+    # Schema checks keep downstream feature code from failing with unclear KeyErrors.
     missing_columns = sorted(set(required_columns) - set(frame.columns))
     if missing_columns:
         raise DataValidationError(
@@ -68,6 +70,7 @@ def load_movielens_data(config: DataConfig) -> MovieLensData:
     ratings_path = config.raw_dir / config.ratings_filename
     movies_path = config.raw_dir / config.movies_filename
 
+    # Loading stays separate from cleaning so I/O and transformations are easy to test.
     ratings = _read_csv(ratings_path)
     movies = _read_csv(movies_path)
 

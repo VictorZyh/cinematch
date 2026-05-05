@@ -19,6 +19,7 @@ def load_user_ids(path: str | Path) -> list[int]:
     input_path = Path(path)
     if input_path.suffix.lower() == ".csv":
         frame = pd.read_csv(input_path)
+        # CSV input supports batch jobs created by external systems.
         if USER_ID not in frame.columns:
             raise ValueError(f"CSV user file must contain a '{USER_ID}' column.")
         return [int(user_id) for user_id in frame[USER_ID].dropna().unique()]
@@ -40,12 +41,14 @@ def generate_recommendations(
     """Generate top-k movie recommendations from persisted artifacts."""
 
     paths = default_artifact_paths(artifact_dir)
+    # Load the exact trained components saved by the offline pipeline.
     candidate_generator = load_pickle(paths.candidate_generator)
     feature_builder = load_pickle(paths.feature_builder)
     ranker = load_pickle(paths.ranker)
     train_interactions = load_pickle(paths.train_interactions)
 
     requested_user_ids = [int(user_id) for user_id in user_ids]
+    # Use training history to avoid recommending movies the user already saw.
     seen_items_by_user = build_seen_items(train_interactions)
     candidates = candidate_generator.generate(
         user_ids=requested_user_ids,

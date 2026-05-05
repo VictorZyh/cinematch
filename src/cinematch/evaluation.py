@@ -16,6 +16,7 @@ def build_relevance_by_user(
 ) -> Dict[int, Set[int]]:
     """Build a mapping of users to relevant held-out items."""
 
+    # Only high-rating held-out interactions count as relevant recommendations.
     positives = interactions.loc[interactions[RATING] >= positive_rating_threshold]
     grouped = positives.groupby(USER_ID)[ITEM_ID].apply(set)
     return {int(user_id): {int(item_id) for item_id in item_ids} for user_id, item_ids in grouped.items()}
@@ -26,6 +27,7 @@ def top_k_recommendations(scored_candidates: pd.DataFrame, k: int) -> pd.DataFra
 
     if k <= 0:
         raise ValueError("k must be positive.")
+    # Sort within each user so the highest model scores appear first.
     ranked = scored_candidates.sort_values(
         [USER_ID, SCORE, ITEM_ID],
         ascending=[True, False, True],
@@ -68,6 +70,7 @@ def ndcg_at_k(recommended_items: Iterable[int], relevant_items: Set[int], k: int
     ]
     if not gains:
         return 0.0
+    # Discount lower-ranked hits so relevant items near the top receive more credit.
     discounts = [1.0 / np.log2(index + 2) for index in range(len(gains))]
     dcg = float(np.sum(np.array(gains) * np.array(discounts)))
     ideal_hits = min(len(relevant_items), k)
@@ -94,6 +97,7 @@ def evaluate_recommendations(
     if scored_candidates.empty:
         return metrics
 
+    # Coverage tracks how broad the recommendation set is across the catalog.
     metrics["catalog_coverage"] = float(len(all_candidate_items))
 
     for k in k_values:
@@ -109,6 +113,7 @@ def evaluate_recommendations(
             recall = recall_at_k(user_recommendations, relevant_items, k)
             recall_values.append(recall)
             ndcg_values.append(ndcg_at_k(user_recommendations, relevant_items, k))
+            # HitRate asks whether the user received at least one relevant item.
             hit_values.append(1.0 if recall > 0.0 else 0.0)
 
         metrics[f"precision_at_{k}"] = float(np.mean(precision_values)) if precision_values else 0.0

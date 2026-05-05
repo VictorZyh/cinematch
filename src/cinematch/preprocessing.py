@@ -34,11 +34,13 @@ def clean_ratings(ratings: pd.DataFrame, min_rating: float) -> pd.DataFrame:
     """
 
     cleaned = ratings.copy()
+    # Normalize dtypes before sorting/splitting so timestamps and ids behave consistently.
     cleaned[USER_ID] = cleaned[USER_ID].astype("int64")
     cleaned[ITEM_ID] = cleaned[ITEM_ID].astype("int64")
     cleaned[RATING] = cleaned[RATING].astype("float64")
     cleaned[TIMESTAMP] = cleaned[TIMESTAMP].astype("int64")
 
+    # Stable ordering makes later per-user time splits deterministic.
     cleaned = cleaned.loc[cleaned[RATING] >= min_rating]
     cleaned = cleaned.drop_duplicates(
         subset=[USER_ID, ITEM_ID, TIMESTAMP], keep="last"
@@ -62,6 +64,7 @@ def parse_genres(value: object) -> List[str]:
     if not genre_text or genre_text == UNKNOWN_GENRE_TOKEN:
         return []
 
+    # MovieLens stores multiple genres in one pipe-delimited field.
     return [genre.strip() for genre in genre_text.split("|") if genre.strip()]
 
 
@@ -69,6 +72,7 @@ def clean_movies(movies: pd.DataFrame) -> pd.DataFrame:
     """Clean MovieLens movie metadata and add parsed genre lists."""
 
     cleaned = movies.copy()
+    # Keep the raw genre string and add a parsed list for feature engineering.
     cleaned[ITEM_ID] = cleaned[ITEM_ID].astype("int64")
     cleaned[TITLE] = cleaned[TITLE].astype("string")
     cleaned[GENRES] = cleaned[GENRES].astype("string")
@@ -95,6 +99,7 @@ def preprocess_movielens(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Run all MovieLens preprocessing steps in the correct order."""
 
+    # Clean movies first so ratings can be filtered to valid movie ids.
     cleaned_movies = clean_movies(movies)
     cleaned_ratings = clean_ratings(ratings, min_rating=min_rating)
     cleaned_ratings = filter_ratings_to_known_movies(cleaned_ratings, cleaned_movies)
