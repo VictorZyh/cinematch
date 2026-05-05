@@ -54,6 +54,17 @@ The split is time-based per user: each user's latest interactions are held out a
 | Clean file structure | README: Repository Structure |
 | Detailed documentation | `docs/architecture.md`, `docs/model_card.md`, `docs/experiment_report.md`, `docs/configuration.md` |
 
+## README Rubric Details
+
+The second rubric item asks the README to clearly explain four practical things:
+
+1. **Purpose of the project**: CineMatch builds an end-to-end movie recommendation system that retrieves candidate movies, ranks them, evaluates top-K recommendation quality, and saves artifacts for batch inference.
+2. **Dataset used**: the project uses the MovieLens Latest Small dataset from GroupLens, especially `ratings.csv` and `movies.csv`.
+3. **Commands to install the package**: use `make install` or the manual `.venv/bin/python -m pip install ".[dev]"` command in the Quickstart section.
+4. **Instructions for importing and running useful scripts**: use `docs/package_usage.md` for Python imports, `scripts/run_pipeline.py` for training/evaluation, `scripts/download_movielens.py` for data download, and `scripts/batch_recommend.py` for batch inference.
+
+The final rubric item, **detailed documentation**, is broader. It refers to the supporting documents in `docs/`, including architecture, data, configuration, testing, model card, reproducibility, and experiment reports.
+
 ## Repository Structure
 
 ```text
