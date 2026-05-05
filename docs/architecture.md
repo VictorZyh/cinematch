@@ -56,6 +56,7 @@ Owns retrieval. It generates a manageable set of user-item candidates from:
 - global popularity
 - item-item collaborative filtering
 - matrix factorization with truncated SVD
+- BPR pairwise matrix factorization
 - weighted hybrid merging
 
 Candidate generation excludes items already seen in the training history.
@@ -66,7 +67,7 @@ Owns ranking feature construction. It fits user/item/genre statistics on trainin
 
 ### `ranking.py`
 
-Owns supervised ranking. It builds positive and negative training examples, trains a configurable sklearn ranker, and scores candidates. The default ranker is histogram-based gradient boosting.
+Owns supervised ranking. It builds positive and negative training examples, trains a configurable sklearn ranker, and scores candidates. The default ranker is logistic regression, while histogram-based gradient boosting is available as an experiment option.
 
 ### `evaluation.py`
 
@@ -96,7 +97,7 @@ Owns batch recommendation generation from saved artifacts.
 
 The safest future improvements are:
 
-- Replace `LogisticRegressionRanker` with another sklearn model.
+- Compare `logistic_regression` with `hist_gradient_boosting` or another sklearn model.
 - Add additional feature columns in `FeatureBuilder`.
 - Add a new candidate generator implementing the same `fit` and `generate` interface.
 - Add API serving after batch inference is stable.

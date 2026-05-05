@@ -35,6 +35,20 @@ Industrial recommenders usually do not score every item for every user in one st
 
 The split is time-based per user: each user's latest interactions are held out as future test data, while features and models are fit only on earlier interactions. This avoids the most common recommender-system data leakage mistake.
 
+## Rubric Checklist
+
+| Requirement | Where It Is Satisfied |
+|---|---|
+| Set up as a Python package | `pyproject.toml`, `src/cinematch/` |
+| Clear project purpose | README: What It Does |
+| Dataset explained | `docs/data.md` |
+| Commands to install the package | README: Quickstart, `docs/reproducibility.md` |
+| Instructions for importing package modules | `docs/package_usage.md` |
+| Instructions for running useful scripts | README: Quickstart, Batch Inference |
+| High unit-test coverage | `docs/testing.md`, `pyproject.toml` coverage config |
+| Clean file structure | README: Repository Structure |
+| Detailed documentation | `docs/architecture.md`, `docs/model_card.md`, `docs/experiment_report.md`, `docs/configuration.md` |
+
 ## Repository Structure
 
 ```text
@@ -43,7 +57,14 @@ cinematch/
 │   └── default.json
 ├── docs/
 │   ├── architecture.md
-│   └── data.md
+│   ├── configuration.md
+│   ├── data.md
+│   ├── experiment_report.md
+│   ├── model_card.md
+│   ├── package_usage.md
+│   ├── reproducibility.md
+│   ├── sample_metrics.json
+│   └── testing.md
 ├── scripts/
 │   ├── batch_recommend.py
 │   ├── download_movielens.py
@@ -145,10 +166,14 @@ PYTHONPATH=src python scripts/run_pipeline.py --config configs/default.json
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [Configuration reference](docs/configuration.md)
 - [Data documentation](docs/data.md)
 - [Model card](docs/model_card.md)
 - [Experiment report](docs/experiment_report.md)
+- [Package usage](docs/package_usage.md)
+- [Reproducibility guide](docs/reproducibility.md)
 - [Sample metrics](docs/sample_metrics.json)
+- [Testing documentation](docs/testing.md)
 
 Latest default MovieLens small run:
 
