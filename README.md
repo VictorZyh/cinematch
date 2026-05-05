@@ -1,6 +1,6 @@
 # CineMatch
 
-ORIE 5270 Big Data Technology  
+[ORIE 5270 Big Data Technology] Course Project
 Team members: Yunhe Zhang, Evelyn Feng
 
 CineMatch is a production-style, end-to-end movie recommendation system built on MovieLens.
